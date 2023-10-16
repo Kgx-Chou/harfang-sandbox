@@ -1,6 +1,7 @@
 #IMPORTS
 from Network.TD3 import Agent as TD3Agent
 from Network.ROT import Agent as ROTAgent
+from Network.BC import Agent as BCAgent
 from read_data import read_data
 from ReplayMemory import *
 import numpy as np
@@ -30,7 +31,7 @@ def save_parameters_to_txt(log_dir, **kwargs):
 def main(config):
     print(torch.cuda.is_available())
 
-    agent = config.agent
+    agent_name = config.agent
     model_name = config.model_name
     port = config.port
     rot_type = config.type
@@ -65,8 +66,8 @@ def main(config):
     highScore = -math.inf
     successRate = -math.inf
     batchSize = 128
-    maxStep = 5000
-    validatStep = 5000
+    maxStep = 6000
+    validatStep = 6000
     hiddenLayer1 = 256
     hiddenLayer2 = 512
     stateDim = 14 # gai
@@ -85,10 +86,13 @@ def main(config):
     #INITIALIZATION
     env = HarfangEnv()
 
-    if agent == 'ROT':
+    if agent_name == 'ROT':
         agent = ROTAgent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name, expert_states, expert_actions, bc_weight, if_up_sample)
         model_dir = './model/ROT/' + model_name
-    elif agent == 'TD3':
+    elif agent_name == 'BC':
+        agent = BCAgent(actorLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, useLayerNorm, name, batchSize, expert_states, expert_actions)
+        model_dir = './model/BC/' + model_name
+    elif agent_name == 'TD3':
         agent = TD3Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name, if_up_sample)
         model_dir = './model/TD3/' + model_name
 
@@ -112,10 +116,99 @@ def main(config):
     # 从500开始，550之后的（不包括550）使用此数据
 
     if not Test:
-        if agent == 'ROT':
+        if agent_name == 'BC':
+            print('agent is BC')
+            for episoed in range(2000):
+                for step in range(maxStep):
+                    bc_loss = agent.train_actor()
+                    writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
+                now = time.time()
+                seconds = int((now - start) % 60)
+                minutes = int(((now - start) // 60) % 60)
+                hours = int((now - start) // 3600)
+                print('Episode: ', episode+1, 'RunTime: ', hours, ':',minutes,':', seconds)
+
+                # validateion
+                if (((episode + 1) % 100) == 0):
+                    success = 0
+                    valScores = []
+                    dif = []
+                    self_pos = []
+                    oppo_pos = []
+                    for e in range(validationEpisodes):
+
+                        dif1=[]
+                        fire=[]
+                        lock=[]
+                        state = env.reset()
+                        totalReward = 0
+                        done = False
+                        for step in range(validatStep):
+                            if not done:
+                                action = agent.chooseActionNoNoise(state)
+                                n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                                state = n_state
+                                totalReward += reward
+                                
+                                dif1.append(env.loc_diff)
+                                if iffire:
+                                    fire.append(step)
+                                if locked:
+                                    lock.append(step)
+                                
+                                if e == validationEpisodes - 1:
+                                    dif.append(env.loc_diff)
+                                    self_pos.append(env.get_pos())
+                                    oppo_pos.append(env.get_oppo_pos())
+
+                                if step is validatStep - 1:
+                                    break
+
+                            elif done:
+                                if 500 < env.Plane_Irtifa < 10000: # 改
+                                # if env.Ally_target_locked == True:
+                                    
+                                    # with open('./dif/dif{}.csv'.format(dif1[-1]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['dif'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
+                                    # with open('./dif/fire{}.csv'.format(dif1[-1]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['step'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                                    # with open('./dif/lock{}.csv'.format(dif1[-1]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['step'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
+                                    plot_dif(dif1, fire, lock, f'my_sdif_{arttir}.png')
+
+                                    success += 1
+                                break
+
+                        valScores.append(totalReward)
+
+                    if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%10 == 0:
+                        if mean(valScores) > highScore: # 总奖励分数
+                            highScore = mean(valScores)
+                            agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
+                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir) 
+                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+
+                        elif success / validationEpisodes > successRate: # 追逐成功率
+                            successRate = success / validationEpisodes
+                            agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
+                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir)
+                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                
+                    arttir += 1
+
+                    print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', success / validationEpisodes)
+                    writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
+                    writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
+        if agent_name == 'ROT':
             print(f'agent is ROT, ROT type is {rot_type}')
-            if rot_type == 'fixed' and bc_weight == 0:
-                print('agent is BC')
             # RANDOM EXPLORATION
             print("Exploration Started")
             for episode in range(explorationEpisodes):
@@ -285,7 +378,7 @@ def main(config):
                     writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
                     writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
         
-        elif agent == 'TD3':
+        elif agent_name == 'TD3':
             print('agent is TD3')
             if not Test:
                 # RANDOM EXPLORATION
@@ -537,4 +630,4 @@ if __name__=='__main__':
 # python train_all.py --agent TD3 --port 12345 --model_name td3_1
 # 
 # BC
-# python train_all.py --agent ROT --port 12345 --type fixed --upsample --bc_weight 0 --model_name bc_1 
+# python train_all.py --agent BC --port 12345 --upsample  --model_name bc_1 

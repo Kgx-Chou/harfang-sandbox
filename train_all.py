@@ -129,7 +129,7 @@ def main(config):
                 print('Episode: ', episode+1, 'RunTime: ', hours, ':',minutes,':', seconds)
 
                 # validateion
-                if (((episode + 100) % 1) == 0):
+                if (((episode + 1) % 100) == 0):
                     success = 0
                     valScores = []
                     dif = []

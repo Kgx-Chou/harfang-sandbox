@@ -38,7 +38,7 @@ def main(config):
     if_up_sample = config.upsample
     bc_weight = config.bc_weight
 
-    df.connect("10.241.58.126", port) #TODO:Change IP and PORT values
+    df.connect("10.243.58.131", port) #TODO:Change IP and PORT values
 
     start = time.time() #STARTING TIME
     df.disable_log()
@@ -99,7 +99,7 @@ def main(config):
     if not Test:
         start_time = datetime.datetime.now()
         dir = Path.cwd() # 获取工作区路径
-        log_dir = str(dir) + "\\" + model_name + "\\" + "log\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
+        log_dir = str(dir) + "\\" + "log\\" + model_name + "\\" + "log\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
         plot_dir = log_dir + "\\" + "plot"
         os.makedirs(log_dir, exist_ok=True)
         os.makedirs(plot_dir, exist_ok=True)
@@ -118,7 +118,7 @@ def main(config):
     if not Test:
         if agent_name == 'BC':
             print('agent is BC')
-            for episoed in range(2000):
+            for episode in range(4000):
                 for step in range(maxStep):
                     bc_loss = agent.train_actor()
                     writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
@@ -129,7 +129,7 @@ def main(config):
                 print('Episode: ', episode+1, 'RunTime: ', hours, ':',minutes,':', seconds)
 
                 # validateion
-                if (((episode + 1) % 100) == 0):
+                if (((episode + 100) % 1) == 0):
                     success = 0
                     valScores = []
                     dif = []
@@ -180,7 +180,7 @@ def main(config):
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                    plot_dif(dif1, fire, lock, f'my_sdif_{arttir}.png')
+                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
 
                                     success += 1
                                 break
@@ -191,23 +191,24 @@ def main(config):
                         if mean(valScores) > highScore: # 总奖励分数
                             highScore = mean(valScores)
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
-                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir) 
-                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
 
                         elif success / validationEpisodes > successRate: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
-                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir)
-                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
                 
                     arttir += 1
 
                     print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', success / validationEpisodes)
                     writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
                     writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
-        if agent_name == 'ROT':
+        
+        elif agent_name == 'ROT':
             print(f'agent is ROT, ROT type is {rot_type}')
             # RANDOM EXPLORATION
             print("Exploration Started")
@@ -236,7 +237,6 @@ def main(config):
             for episode in range(trainingEpisodes):
                 state = env.reset()
                 totalReward = 0
-                episode_step = 0
                 done = False
                 fire = False
 
@@ -255,10 +255,10 @@ def main(config):
                         n_state,reward,done, info, stepsuccess = env.step(action)
 
                         if step is maxStep - 1:
-                            episode_step = step
                             break
 
                         agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
+                        
                         if stepsuccess:
                             print('success')
                         state = n_state
@@ -276,9 +276,7 @@ def main(config):
                         if 500 < env.Plane_Irtifa < 10000: # 改
                         # if env.Ally_target_locked == True:
                             fire = True
-                            episode_step = step
                         break
-                    
                 scores.append(totalReward)
                 if fire:
                     trainsuccess.append(1)
@@ -286,7 +284,7 @@ def main(config):
                     trainsuccess.append(0)
                 writer.add_scalar('Training/Episode Reward', totalReward, episode)
                 writer.add_scalar('Training/Last 100 Episode Average Reward', np.mean(scores[-100:]), episode)
-                writer.add_scalar('Training/Average Step Reward', totalReward/episode_step, episode)
+                writer.add_scalar('Training/Average Step Reward', totalReward/step, episode)
                 writer.add_scalar('Training/Last 50 Episode Train success rate', np.mean(trainsuccess[-50:]), episode)               
                 
                 now = time.time()
@@ -350,7 +348,7 @@ def main(config):
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                    plot_dif(dif1, fire, lock, f'my_sdif_{arttir}.png')
+                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
 
                                     success += 1
                                 break
@@ -361,16 +359,16 @@ def main(config):
                         if mean(valScores) > highScore: # 总奖励分数
                             highScore = mean(valScores)
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
-                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir) 
-                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
 
                         elif success / validationEpisodes > successRate: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
-                            draw_dif(f'dif_{arttir}.pdf', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.pdf', self_pos, oppo_pos, plot_dir)
-                            plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
                 
                     arttir += 1
 
@@ -380,175 +378,171 @@ def main(config):
         
         elif agent_name == 'TD3':
             print('agent is TD3')
-            if not Test:
-                # RANDOM EXPLORATION
-                print("Exploration Started")
-                for episode in range(explorationEpisodes):
-                    state = env.reset()
-                    done = False
-                    for step in range(maxStep):
-                        if not done:
-                            action = env.action_space.sample()                
+            # RANDOM EXPLORATION
+            print("Exploration Started")
+            for episode in range(explorationEpisodes):
+                state = env.reset()
+                done = False
+                for step in range(maxStep):
+                    if not done:
+                        action = env.action_space.sample()                
 
-                            n_state,reward,done, info, stepsuccess = env.step(action)
-                            # print(n_state)
-                            if step is maxStep-1:
-                                done = True
-                            agent.store(state,action,n_state,reward,done,stepsuccess)
-                            state=n_state
+                        n_state,reward,done, info, stepsuccess = env.step(action)
+                        # print(n_state)
+                        if step is maxStep-1:
+                            done = True
+                        agent.store(state,action,n_state,reward,done,stepsuccess)
+                        state=n_state
 
-                            if done:
-                                break
-                    sys.stdout.write("\rExploration Completed: %.2f%%" % ((episode+1)/explorationEpisodes*100))
-                sys.stdout.write("\n")
-
-                print("Training Started")
-                scores = []
-                trainsuccess = []
-                for episode in range(trainingEpisodes):
-                    state = env.reset()
-                    totalReward = 0
-                    episode_step = 0
-                    done = False
-                    fire = False # 表示是否成功
-                    for step in range(maxStep):
-                        if not done:
-                            action = agent.chooseAction(state)
-                            n_state,reward,done, info , stepsuccess= env.step(action)
-
-                            if step is maxStep - 1:
-                                episode_step = step
-                                break
-
-                            agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
-                            if stepsuccess:
-                                print('success')
-                            state = n_state
-                            totalReward += reward
-
-                            if agent.buffer.fullEnough(agent.batchSize):
-                                critic_loss, actor_loss = agent.learn()
-                                writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
-                                writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
-                                
-                        elif done:
-                            if 500 < env.Plane_Irtifa < 10000: # 改
-                            # if env.Ally_target_locked == True:
-                                fire = True
-                                episode_step = step
+                        if done:
                             break
-                        
-                    scores.append(totalReward)
-                    if fire:
-                        trainsuccess.append(1)
-                    else:
-                        trainsuccess.append(0)
-                    writer.add_scalar('Training/Episode Reward', totalReward, episode)
-                    writer.add_scalar('Training/Last 100 Episode Average Reward', np.mean(scores[-100:]), episode)
-                    writer.add_scalar('Training/Average Step Reward', totalReward/episode_step, episode)
-                    writer.add_scalar('Training/Last 50 Episode Train success rate', np.mean(trainsuccess[-50:]), episode)
+                sys.stdout.write("\rExploration Completed: %.2f%%" % ((episode+1)/explorationEpisodes*100))
+            sys.stdout.write("\n")
+
+            print("Training Started")
+            scores = []
+            trainsuccess = []
+            for episode in range(trainingEpisodes):
+                state = env.reset()
+                totalReward = 0
+                done = False
+                fire = False # 表示是否成功
+                for step in range(maxStep):
+                    if not done:
+                        action = agent.chooseAction(state)
+                        n_state,reward,done, info , stepsuccess= env.step(action)
+
+                        if step is maxStep - 1:
+                            break
+
+                        agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
+                        if stepsuccess:
+                            print('success')
+                        state = n_state
+                        totalReward += reward
+
+                        if agent.buffer.fullEnough(agent.batchSize):
+                            critic_loss, actor_loss = agent.learn()
+                            writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
+                            writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
+                            
+                    elif done:
+                        if 500 < env.Plane_Irtifa < 10000: # 改
+                        # if env.Ally_target_locked == True:
+                            fire = True
+                        break
                     
-                    now = time.time()
-                    seconds = int((now - start) % 60)
-                    minutes = int(((now - start) // 60) % 60)
-                    hours = int((now - start) // 3600)
-                    print('Episode: ', episode+1, ' Completed: %r' % done,' Success: %r' % fire, \
-                        ' FinalReward: %.2f' % totalReward, \
-                        ' Last100AverageReward: %.2f' % np.mean(scores[-100:]), \
-                        'RunTime: ', hours, ':',minutes,':', seconds)
-                        
-                    #VALIDATION
-                    if (((episode + 1) % checkpointRate) == 0):
-                        success = 0
-                        valScores = []
-                        dif = []
-                        self_pos = []
-                        oppo_pos = []
-                        for e in range(validationEpisodes):
+                scores.append(totalReward)
+                if fire:
+                    trainsuccess.append(1)
+                else:
+                    trainsuccess.append(0)
+                writer.add_scalar('Training/Episode Reward', totalReward, episode)
+                writer.add_scalar('Training/Last 100 Episode Average Reward', np.mean(scores[-100:]), episode)
+                writer.add_scalar('Training/Average Step Reward', totalReward/step, episode)
+                writer.add_scalar('Training/Last 50 Episode Train success rate', np.mean(trainsuccess[-50:]), episode)
+                
+                now = time.time()
+                seconds = int((now - start) % 60)
+                minutes = int(((now - start) // 60) % 60)
+                hours = int((now - start) // 3600)
+                print('Episode: ', episode+1, ' Completed: %r' % done,' Success: %r' % fire, \
+                    ' FinalReward: %.2f' % totalReward, \
+                    ' Last100AverageReward: %.2f' % np.mean(scores[-100:]), \
+                    'RunTime: ', hours, ':',minutes,':', seconds)
+                    
+                #VALIDATION
+                if (((episode + 1) % checkpointRate) == 0):
+                    success = 0
+                    valScores = []
+                    dif = []
+                    self_pos = []
+                    oppo_pos = []
+                    for e in range(validationEpisodes):
 
-                            dif1=[]
-                            fire=[]
-                            lock=[]
-                            state = env.reset()
-                            totalReward = 0
-                            done = False
-                            for step in range(validatStep):
-                                if not done:
-                                    action = agent.chooseActionNoNoise(state)
-                                    n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
-                                    state = n_state
-                                    totalReward += reward
+                        dif1=[]
+                        fire=[]
+                        lock=[]
+                        state = env.reset()
+                        totalReward = 0
+                        done = False
+                        for step in range(validatStep):
+                            if not done:
+                                action = agent.chooseActionNoNoise(state)
+                                n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                                state = n_state
+                                totalReward += reward
 
-                                    dif1.append(env.loc_diff)
-                                    if iffire:
-                                        fire.append(step)
-                                    if locked:
-                                        lock.append(step)
-                                    
-                                    if e == validationEpisodes - 1:
-                                        dif.append(env.loc_diff)
-                                        self_pos.append(env.get_pos())
-                                        oppo_pos.append(env.get_oppo_pos())
+                                dif1.append(env.loc_diff)
+                                if iffire:
+                                    fire.append(step)
+                                if locked:
+                                    lock.append(step)
+                                
+                                if e == validationEpisodes - 1:
+                                    dif.append(env.loc_diff)
+                                    self_pos.append(env.get_pos())
+                                    oppo_pos.append(env.get_oppo_pos())
 
-                                    if step is validatStep - 1:
-                                        break
-
-                                elif done:
-                                    if 500 < env.Plane_Irtifa < 10000: # 改
-                                    # if env.Ally_target_locked == True:
-                                        
-                                        # with open('./dif/sdif{}.csv'.format(fire[0]), 'w', newline='') as file:
-                                        #     writer1 = csv.writer(file)
-                                        #     writer1.writerow(['dif'])  # 写入列标题
-                                        #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
-                                        # with open('./dif/sfire{}.csv'.format(fire[0]), 'w', newline='') as file:
-                                        #     writer1 = csv.writer(file)
-                                        #     writer1.writerow(['step'])  # 写入列标题
-                                        #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
-                                        # with open('./dif/slock{}.csv'.format(fire[0]), 'w', newline='') as file:
-                                        #     writer1 = csv.writer(file)
-                                        #     writer1.writerow(['step'])  # 写入列标题
-                                        #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                        plot_dif(dif1, fire, lock, f'my_sdif_{arttir}.png')
-
-                                        success += 1
+                                if step is validatStep - 1:
                                     break
-                            
-                            # with open('./dif/tdif{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
-                            #     writer1 = csv.writer(file)
-                            #     writer1.writerow(['dif'])  # 写入列标题
-                            #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
-                            # with open('./dif/tfire{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
-                            #     writer1 = csv.writer(file)
-                            #     writer1.writerow(['step'])  # 写入列标题
-                            #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
-                            # with open('./dif/tlock{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
-                            #     writer1 = csv.writer(file)
-                            #     writer1.writerow(['step'])  # 写入列标题
-                            #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                            
-                            valScores.append(totalReward)
 
-                        if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%10 == 0:
-                            if mean(valScores) > highScore: # 总奖励分数
-                                highScore = mean(valScores)
-                                agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore))
-                                draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                                draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
-                                plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                            elif done:
+                                if 500 < env.Plane_Irtifa < 10000: # 改
+                                # if env.Ally_target_locked == True:
+                                    
+                                    # with open('./dif/sdif{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['dif'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
+                                    # with open('./dif/sfire{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['step'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                                    # with open('./dif/slock{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    #     writer1 = csv.writer(file)
+                                    #     writer1.writerow(['step'])  # 写入列标题
+                                    #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
+                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
 
-                            elif success / validationEpisodes > successRate: # 追逐成功率
-                                successRate = success / validationEpisodes
-                                agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate))
-                                draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                                draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
-                                plot_dif(dif1, fire, lock, f'my_dif_{arttir}.png')
+                                    success += 1
+                                break
                         
-                        arttir += 1
+                        # with open('./dif/tdif{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        #     writer1 = csv.writer(file)
+                        #     writer1.writerow(['dif'])  # 写入列标题
+                        #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
+                        # with open('./dif/tfire{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        #     writer1 = csv.writer(file)
+                        #     writer1.writerow(['step'])  # 写入列标题
+                        #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                        # with open('./dif/tlock{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        #     writer1 = csv.writer(file)
+                        #     writer1.writerow(['step'])  # 写入列标题
+                        #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
+                        
+                        valScores.append(totalReward)
 
-                        print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', success / validationEpisodes)
-                        writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
-                        writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
+                    if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%10 == 0:
+                        if mean(valScores) > highScore: # 总奖励分数
+                            highScore = mean(valScores)
+                            agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+
+                        elif success / validationEpisodes > successRate: # 追逐成功率
+                            successRate = success / validationEpisodes
+                            agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
+                            draw_dif(f'dif_{arttir}.png', dif, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                    
+                    arttir += 1
+
+                    print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', success / validationEpisodes)
+                    writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
+                    writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
     else:
         success = 0
         validationEpisodes = 1000
@@ -618,7 +612,7 @@ if __name__=='__main__':
     main(parser.parse_args())
 
 # 线性rot
-# python train_all.py --agent ROT --port 12345 --type linear --upsample --bc_weight 1 --model_name lrot_1 
+# python train_all.py --agent ROT --port 54321 --type linear --upsample --bc_weight 1 --model_name lrot_1 
 # 
 # 固定rot
 # python train_all.py --agent ROT --port 12345 --type fixed --upsample --bc_weight 0.5 --model_name frot_1 
@@ -630,4 +624,4 @@ if __name__=='__main__':
 # python train_all.py --agent TD3 --port 12345 --model_name td3_1
 # 
 # BC
-# python train_all.py --agent BC --port 12345 --upsample  --model_name bc_1 
+# python train_all.py --agent BC --port 11111 --upsample  --model_name bc_1 

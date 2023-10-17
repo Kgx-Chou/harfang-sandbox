@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import os
+from pylab import mpl
+# 设置显示中文字体
+mpl.rcParams["font.sans-serif"] = ["SimHei"]
+# 设置正常显示符号
+mpl.rcParams["axes.unicode_minus"] = False
 
 
 def read_tensorboard_data(tensorboard_path, val_name):
@@ -36,6 +41,27 @@ def draw_dif(file_name, dif, dir):
     plt.savefig(file_name, bbox_inches='tight')
 
 
+# def draw_pos(file_name, self_pos, oppo_pos, dir):
+#     ax = plt.figure().add_subplot(projection='3d')
+#     self_pos = np.array(self_pos)
+#     oppo_pos = np.array(oppo_pos)
+
+#     num_points = len(self_pos)
+
+#     colors = plt.cm.jet(np.linspace(0,1,num_points))
+
+#     for i in range(num_points - 1):
+#         if i != i-2:
+#             ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=colors[i], label='self')
+#             ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=colors[i], label='oppo')
+#         else:
+#             ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=colors[i], label='self')
+#             ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=colors[i], label='oppo')
+    
+#     plt.legend()
+#     file_name = os.path.join(dir, file_name)
+#     plt.savefig(file_name, bbox_inches='tight')
+
 def draw_pos(file_name, self_pos, oppo_pos, dir):
     ax = plt.figure().add_subplot(projection='3d')
     self_pos = np.array(self_pos)
@@ -43,21 +69,20 @@ def draw_pos(file_name, self_pos, oppo_pos, dir):
 
     num_points = len(self_pos)
 
-    colors = plt.cm.jet(np.linspace(0,1,num_points))
+    self_colors = plt.cm.Blues(np.linspace(0.2, 1, num_points))
+    oppo_colors = plt.cm.Reds(np.linspace(0.2, 1, num_points))
 
     for i in range(num_points - 1):
-        if i != i-2:
-            ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=colors[i])
-            ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=colors[i])
-        else:
-            ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=colors[i], label='self')
-            ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=colors[i], label='oppo')
-    
-    plt.legend()
-    file_name = os.path.join(dir, file_name)
-    plt.savefig(file_name, bbox_inches='tight')
+        ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=self_colors[i], label='self')
+        ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=oppo_colors[i], label='oppo')
 
-def plot_dif(dif, lock, fire, dir):
+    file_name = os.path.join(dir, file_name)
+
+    plt.title('追击图', fontsize=10)
+    plt.savefig(file_name, bbox_inches='tight', dpi=300)
+
+
+def plot_dif(dif, lock, fire, dir, name):
     # 创建一个新图形
     plt.figure(figsize=(10, 6))
 
@@ -80,7 +105,8 @@ def plot_dif(dif, lock, fire, dir):
     # plt.legend()
     plt.title('距离图', fontsize=20)
     plt.grid(True)
-    plt.savefig(dir)
+    dir = os.path.join(dir, name)
+    plt.savefig(dir, dpi=300)
 
 if __name__ == "__main__":
     tensorboard_path = '/Users/wenyongyan/Downloads/logs/events.out.tfevents.1687995824.DESKTOP-6S5E44I.284.0'

@@ -187,10 +187,10 @@ class Agent:
 
         return self.bc_loss.cpu().detach().numpy()
 
-    def save_checkpoint(self, ajan, model_name):
+    def saveCheckpoints(self, ajan, model_name):
         torch.save(self.actor.state_dict(), '.\\' + model_name + '\\{}'.format(ajan) + self.actor.name)
 
-    def load_checkpoint(self, ajan, model_name):
+    def loadCheckpoints(self, ajan, model_name):
         self.actor.load_state_dict(torch.load('.\\' + model_name + '\\{}'.format(ajan) + self.actor.name))
 
     def chooseActionNoNoise(self, state):

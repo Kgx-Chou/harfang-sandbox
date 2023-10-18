@@ -175,6 +175,8 @@ class Agent(nn.Module):
         self.critic = Critic(criticLR, stateDim, actionDim, full1Dim, full2Dim, layerNorm, 'Critic_'+name)
         self.targetCritic = Critic(criticLR, stateDim, actionDim, full1Dim, full2Dim, layerNorm, 'TargetCritic_'+name)
         hard_update(self.targetCritic, self.critic)
+
+        self.bc_actor = Actor(actorLR,stateDim,actionDim, full1Dim, full2Dim, layerNorm, 'BCActor_'+name)
         
         self.buffer = UniformMemory(bufferSize, upsample)
     
@@ -270,12 +272,17 @@ class Agent(nn.Module):
         if self.actorTrainable is True:
             self.bc_weight = bc_weight_now
 
-            if self.bc_weight == 100:
-                print("soft Q!")
-
             self.actor.train()
             self.nextAction = self.actor(batchState)
-            self.rl_loss = -self.critic.onlyQ1(batchState,self.nextAction).mean() # rl loss
+            rl_Q = self.critic.onlyQ1(batchState, self.nextAction)
+            self.rl_loss = -rl_Q.mean() # rl loss
+
+            if self.bc_weight == 100:
+                print("soft Q!")
+                # 软Q
+                soft_action = self.bc_actor(batchState)
+                soft_Q = self.critic.onlyQ1(batchState, soft_action)
+                self.bc_weight = (soft_Q>rl_Q).float().mean().detach()
 
             BCnextAction = self.actor(BCbatchState)
             self.bc_loss = F.mse_loss(BCnextAction, BCbatchAction) * 100000
@@ -308,3 +315,7 @@ class Agent(nn.Module):
         self.actor.loadCheckpoint(ajan,model_name)
         self.targetCritic.loadCheckpoint(ajan,model_name)
         self.targetActor.loadCheckpoint(ajan,model_name)
+
+    def load_bc_actor(self, ajan, model_name):
+        self.bc_actor.loadCheckpoint(ajan, model_name)
+        self.bc_actor.eval()  # 设置为评估模式

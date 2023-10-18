@@ -91,8 +91,38 @@ def plot_dif(dif, lock, fire, dir, name):
 
 
     # 着色 `lock` 区间为黄色
-    for i in range(len(lock) - 1):
-        plt.axvspan(lock[i], lock[i + 1], facecolor='yellow', alpha=0.5)
+    for i in range(len(lock)):
+        plt.axvspan(lock[i], lock[i]+1, facecolor='yellow', alpha=0.5)
+
+    # 标记 `fire` 对应的点为红色并增大
+    for fire_step in fire:
+        plt.scatter(fire_step, dif[fire_step], color='red', s=40)
+
+    plt.xticks(fontsize=10)  # 设置x轴标签的字体大小
+    plt.yticks(fontsize=10)  # 设置y轴标签的字体大小     
+    plt.xlabel('步数', fontsize=16)
+    plt.ylabel('距离', fontsize=16)
+    # plt.legend()
+    plt.title('距离图', fontsize=20)
+    plt.grid(True)
+    dir = os.path.join(dir, name)
+    plt.savefig(dir, dpi=300)
+
+def plot_dif2(dif, lock, missile, fire, dir, name):
+    # 创建一个新图形
+    plt.figure(figsize=(10, 6))
+
+    # 绘制 `dif` 曲线
+    plt.plot(dif, color='blue', linewidth=2, marker='None')  # 用'None'禁用点的绘制
+
+
+    # 着色 `lock` 区间为淡黄色
+    for i in range(len(lock)):
+        plt.axvspan(lock[i], lock[i]+1, facecolor='#FFDFBF', alpha=0.6)
+
+    # 着色 `missile` 区间为淡蓝色
+    for j in range(len(missile)):
+        plt.axhspan(missile[j], missile[j]+1, facecolor='#ACD8E6', alpha=0.6)
 
     # 标记 `fire` 对应的点为红色并增大
     for fire_step in fire:

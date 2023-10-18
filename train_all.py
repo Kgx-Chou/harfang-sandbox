@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 import csv
 
-from plot import draw_dif, draw_pos, plot_dif
+from plot import draw_dif, draw_pos, plot_dif, plot_dif2
 import argparse
 
 def save_parameters_to_txt(log_dir, **kwargs):
@@ -73,6 +73,9 @@ def main(config):
     stateDim = 14 # gai
     actionDim = 4 # gai
     useLayerNorm = True
+
+    bc_actor_dir = './model/BC'
+    bc_actor_name = 'Agent11_score-1028.3316940362056'
 
     data_dir = './expert_data/expert_data_ai2.csv'
     data_folder_dir = './expert_data'
@@ -138,8 +141,9 @@ def main(config):
                     for e in range(validationEpisodes):
 
                         dif1=[]
-                        fire=[]
+                        fire1=[]
                         lock=[]
+                        missile=[]
                         state = env.reset()
                         totalReward = 0
                         done = False
@@ -152,9 +156,11 @@ def main(config):
                                 
                                 dif1.append(env.loc_diff)
                                 if iffire:
-                                    fire.append(step)
+                                    fire1.append(step)
                                 if locked:
                                     lock.append(step)
+                                if beforeaction:
+                                    missile.append(step)
                                 
                                 if e == validationEpisodes - 1:
                                     dif.append(env.loc_diff)
@@ -175,12 +181,13 @@ def main(config):
                                     # with open('./dif/fire{}.csv'.format(dif1[-1]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
-                                    #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                                    #     writer1.writerows(map(lambda x: [x], fire1))  # 将列表的每个元素写入CSV行
                                     # with open('./dif/lock{}.csv'.format(dif1[-1]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif(dif1, lock, fire1, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_sdif2_{arttir}.png')
 
                                     success += 1
                                 break
@@ -193,14 +200,16 @@ def main(config):
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
                         elif success / validationEpisodes > successRate: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                 
                     arttir += 1
 
@@ -248,6 +257,8 @@ def main(config):
                     bc_weight_now = bc_weight
                 elif rot_type == 'soft':
                     bc_weight_now = 100
+                    # 软Q
+                    agent.load_bc_actor(bc_actor_name, bc_actor_dir)
 
                 for step in range(maxStep):
                     if not done:
@@ -306,8 +317,9 @@ def main(config):
                     for e in range(validationEpisodes):
 
                         dif1=[]
-                        fire=[]
+                        fire1=[]
                         lock=[]
+                        missile = []
                         state = env.reset()
                         totalReward = 0
                         done = False
@@ -320,9 +332,11 @@ def main(config):
                                 
                                 dif1.append(env.loc_diff)
                                 if iffire:
-                                    fire.append(step)
+                                    fire1.append(step)
                                 if locked:
                                     lock.append(step)
+                                if beforeaction:
+                                    missile.append(step)
                                 
                                 if e == validationEpisodes - 1:
                                     dif.append(env.loc_diff)
@@ -340,15 +354,16 @@ def main(config):
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['dif'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
-                                    # with open('./dif/fire{}.csv'.format(dif1[-1]), 'w', newline='') as file:
+                                    # with open('./dif/fire1{}.csv'.format(dif1[-1]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
-                                    #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                                    #     writer1.writerows(map(lambda x: [x], fire1))  # 将列表的每个元素写入CSV行
                                     # with open('./dif/lock{}.csv'.format(dif1[-1]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif(dif1, lock, fire1, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_sdif2_{arttir}.png')
 
                                     success += 1
                                 break
@@ -361,14 +376,16 @@ def main(config):
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
                         elif success / validationEpisodes > successRate: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                 
                     arttir += 1
 
@@ -461,7 +478,8 @@ def main(config):
                     for e in range(validationEpisodes):
 
                         dif1=[]
-                        fire=[]
+                        fire1=[]
+                        missile=[]
                         lock=[]
                         state = env.reset()
                         totalReward = 0
@@ -475,9 +493,11 @@ def main(config):
 
                                 dif1.append(env.loc_diff)
                                 if iffire:
-                                    fire.append(step)
+                                    fire1.append(step)
                                 if locked:
                                     lock.append(step)
+                                if beforeaction:
+                                    missile(step)
                                 
                                 if e == validationEpisodes - 1:
                                     dif.append(env.loc_diff)
@@ -491,32 +511,33 @@ def main(config):
                                 if 500 < env.Plane_Irtifa < 10000: # 改
                                 # if env.Ally_target_locked == True:
                                     
-                                    # with open('./dif/sdif{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    # with open('./dif/sdif{}.csv'.format(fire1[0]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['dif'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
-                                    # with open('./dif/sfire{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    # with open('./dif/sfire{}.csv'.format(fire1[0]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
-                                    #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
-                                    # with open('./dif/slock{}.csv'.format(fire[0]), 'w', newline='') as file:
+                                    #     writer1.writerows(map(lambda x: [x], fire1))  # 将列表的每个元素写入CSV行
+                                    # with open('./dif/slock{}.csv'.format(fire1[0]), 'w', newline='') as file:
                                     #     writer1 = csv.writer(file)
                                     #     writer1.writerow(['step'])  # 写入列标题
                                     #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
-                                    plot_dif(dif1, fire, lock, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif(dif1, lock, fire1, plot_dir, f'my_sdif_{arttir}.png')
+                                    plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_sdif2_{arttir}.png')
 
                                     success += 1
                                 break
                         
-                        # with open('./dif/tdif{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        # with open('./dif/tdif{}{}.csv'.format(fire1[0],dif1[-1]), 'w', newline='') as file:
                         #     writer1 = csv.writer(file)
                         #     writer1.writerow(['dif'])  # 写入列标题
                         #     writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
-                        # with open('./dif/tfire{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        # with open('./dif/tfire{}{}.csv'.format(fire1[0],dif1[-1]), 'w', newline='') as file:
                         #     writer1 = csv.writer(file)
                         #     writer1.writerow(['step'])  # 写入列标题
-                        #     writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
-                        # with open('./dif/tlock{}{}.csv'.format(fire[0],dif1[-1]), 'w', newline='') as file:
+                        #     writer1.writerows(map(lambda x: [x], fire1))  # 将列表的每个元素写入CSV行
+                        # with open('./dif/tlock{}{}.csv'.format(fire1[0],dif1[-1]), 'w', newline='') as file:
                         #     writer1 = csv.writer(file)
                         #     writer1.writerow(['step'])  # 写入列标题
                         #     writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
@@ -529,14 +550,16 @@ def main(config):
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
                         elif success / validationEpisodes > successRate: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
                             draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
-                            plot_dif(dif1, fire, lock, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                     
                     arttir += 1
 
@@ -547,7 +570,7 @@ def main(config):
         success = 0
         validationEpisodes = 1000
         dif=[]
-        fire=[]
+        fire1=[]
         lock=[]
         for e in range(validationEpisodes):
             state = env.reset()
@@ -560,7 +583,7 @@ def main(config):
                     n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
                     dif.append(env.loc_diff)
                     if iffire:
-                        fire.append(step)
+                        fire1.append(step)
                     if locked:
                         lock.append(locked)
                     if action[3]>0:
@@ -592,7 +615,7 @@ def main(config):
                 with open('fire.csv', 'w', newline='') as file:
                     writer1 = csv.writer(file)
                     writer1.writerow(['step'])  # 写入列标题
-                    writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+                    writer1.writerows(map(lambda x: [x], fire1))  # 将列表的每个元素写入CSV行
                 with open('lock.csv', 'w', newline='') as file:
                     writer1 = csv.writer(file)
                     writer1.writerow(['setp'])  # 写入列标题
@@ -618,7 +641,7 @@ if __name__=='__main__':
 # python train_all.py --agent ROT --port 12345 --type fixed --upsample --bc_weight 0.5 --model_name frot_1 
 # 
 # 软rot
-# python train_all.py --agent ROT --port 12345 --type soft --upsample --model_name srot_1 
+# python train_all.py --agent ROT --port 11111 --type soft --upsample --model_name srot_1 
 #
 # td3
 # python train_all.py --agent TD3 --port 12345 --model_name td3_1

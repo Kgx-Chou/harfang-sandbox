@@ -19,7 +19,13 @@ class UniformMemory(object):
         print(f'up_sample is {upsample}')
 
     def store(self, *args):
-        priority = 1.0 if args[-1] else 0.1
+        if args[-1] == 1:
+            priority = 1.0
+        elif args[-1] == -1:
+            priority = 0.1
+        else:
+            priority = 0.1
+
         # if args[-1]:
         #     print(True)
 

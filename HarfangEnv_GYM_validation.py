@@ -28,14 +28,14 @@ class HarfangEnv():
         self.missile1_id = self.missile[0] # 导弹1
         self.oppo_health = 0.2 # gai 敌机血量
         self.target_angle = None
-        self.success = 0 # stepsuccess
+        self.success = False # stepsuccess
 
     def reset(self):  # reset simulation beginning of episode
         self.Ally_target_locked = False # 运用动作前是否锁敌
         self.n_Ally_target_locked = False # 运用动作后是否锁敌
         self.missile1_state = True # gai 运用动作前导弹1是否存在
         self.n_missile1_state = True # gai 运用动作后导弹1是否存在
-        self.success = 0
+        self.success = False
         self.done = False
         self._reset_machine()
         self._reset_missile() # gai 重设导弹
@@ -52,7 +52,10 @@ class HarfangEnv():
 
         return state_ally, self.reward, self.done, {}, self.success
     
-    def step_test(self, action_ally):
+    def step_test(self, action_ally, step):
+        df.set_health("ennemy_2", 1) # 恢复敌机健康值
+        if step % 200==0: # 每200 step 装一次弹
+            df.rearm_machine(self.Plane_ID_ally)
         self._apply_action(action_ally)  # apply neural networks output
         state_ally = self._get_observation()  # in each step, get observation
         self._get_reward()  # get reward value
@@ -62,7 +65,7 @@ class HarfangEnv():
     
     def _get_reward(self):
         self.reward = 0
-        self.success = 0
+        self.success = False
         self._get_loc_diff()  # get location difference information for reward
         self.reward -= (0.0001 * (self.loc_diff)) # 0.4
 
@@ -91,10 +94,9 @@ class HarfangEnv():
         if self.now_missile_state == True: # gai 如果本次step导弹发射
             if self.missile1_state == True and self.Ally_target_locked == False: # 且导弹存在、不锁敌
                 self.reward -= 4
-                self.success = -1
             elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
                 self.reward += 4
-                self.success = 1
+                self.success = True
             else:
                 self.reward -= 1
 
@@ -140,8 +142,8 @@ class HarfangEnv():
     def _reset_machine(self):
         df.reset_machine("ally_1") # gai 初始化两个飞机
         df.reset_machine("ennemy_2")
-        df.set_health("ennemy_2", 0.2) # 设置的为健康水平，即血量/100
-        self.oppo_health = 0.2 # gai
+        df.set_health("ennemy_2", 1) # 设置的为健康水平，即血量/100
+        self.oppo_health = 1 # gai
         df.reset_machine_matrix(self.Plane_ID_oppo, 0, 4200, 0, 0, 0, 0)
         df.reset_machine_matrix(self.Plane_ID_ally, 0, 3500, -4000, 0, 0, 0)
 
@@ -219,7 +221,7 @@ class HarfangEnv():
             missile1_state = -1
 
         States = np.concatenate((Pos_Diff, Plane_Euler, Plane_Heading,
-                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
+                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, 0.2, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
         
         # 距离差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
 

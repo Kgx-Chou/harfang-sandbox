@@ -66,16 +66,16 @@ def main(config):
     highScore = -math.inf
     successRate = -math.inf
     batchSize = 128
-    maxStep = 6000
-    validatStep = 6000
+    maxStep = 3500
+    validatStep = 3500
     hiddenLayer1 = 256
     hiddenLayer2 = 512
     stateDim = 14 # gai
     actionDim = 4 # gai
     useLayerNorm = True
 
-    bc_actor_dir = './model/BC'
-    bc_actor_name = 'Agent11_score-1028.3316940362056'
+    bc_actor_dir = 'model\\BC\\bc_1'
+    bc_actor_name = 'Agent20_successRate0.64'
 
     data_dir = './expert_data/expert_data_ai2.csv'
     data_folder_dir = './expert_data'
@@ -203,7 +203,7 @@ def main(config):
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
-                        elif success / validationEpisodes > successRate: # 追逐成功率
+                        elif success / validationEpisodes > successRate or arttir%10 == 0: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
@@ -241,6 +241,9 @@ def main(config):
             sys.stdout.write("\n")
 
             print("Training Started")
+            if rot_type == 'soft':
+                agent.load_bc_actor(bc_actor_name, bc_actor_dir)
+                print('success load bc model')
             scores = []
             trainsuccess = []
             for episode in range(trainingEpisodes):
@@ -256,9 +259,11 @@ def main(config):
                 elif rot_type == 'fixed':
                     bc_weight_now = bc_weight
                 elif rot_type == 'soft':
-                    bc_weight_now = 100
-                    # 软Q
-                    agent.load_bc_actor(bc_actor_name, bc_actor_dir)
+                    if episode < 100:
+                        bc_weight_now = 0.9
+                    else:
+                        bc_weight_now = 100
+                    # 软Q       
 
                 for step in range(maxStep):
                     if not done:
@@ -270,13 +275,15 @@ def main(config):
 
                         agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
                         
-                        if stepsuccess:
+                        if stepsuccess==1:
                             print('success')
+                        elif stepsuccess==-1:
+                            print('fail')
                         state = n_state
                         totalReward += reward
 
                         if agent.buffer.fullEnough(agent.batchSize):
-                            critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn(bc_weight_now)
+                            critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss, bc_weight_now = agent.learn(bc_weight_now)
                             writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                             writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
                             writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
@@ -379,7 +386,7 @@ def main(config):
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
-                        elif success / validationEpisodes > successRate: # 追逐成功率
+                        elif success / validationEpisodes > successRate or arttir%10 == 0: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
@@ -433,8 +440,10 @@ def main(config):
                             break
 
                         agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
-                        if stepsuccess:
+                        if stepsuccess==1:
                             print('success')
+                        if stepsuccess==-1:
+                            print('fail')
                         state = n_state
                         totalReward += reward
 
@@ -553,7 +562,7 @@ def main(config):
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
-                        elif success / validationEpisodes > successRate: # 追逐成功率
+                        elif success / validationEpisodes > successRate or arttir%10 == 0: # 追逐成功率
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
@@ -642,6 +651,7 @@ if __name__=='__main__':
 # 
 # 软rot
 # python train_all.py --agent ROT --port 11111 --type soft --upsample --model_name srot_1 
+# python train_all.py --agent ROT --port 12345 --type soft --upsample --model_name srot_2 
 #
 # td3
 # python train_all.py --agent TD3 --port 12345 --model_name td3_1

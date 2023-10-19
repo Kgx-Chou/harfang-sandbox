@@ -176,7 +176,7 @@ class Agent(nn.Module):
         self.targetCritic = Critic(criticLR, stateDim, actionDim, full1Dim, full2Dim, layerNorm, 'TargetCritic_'+name)
         hard_update(self.targetCritic, self.critic)
 
-        self.bc_actor = Actor(actorLR,stateDim,actionDim, full1Dim, full2Dim, layerNorm, 'BCActor_'+name)
+        self.bc_actor = Actor(actorLR,stateDim,actionDim, full1Dim, full2Dim, layerNorm, name)
         
         self.buffer = UniformMemory(bufferSize, upsample)
     
@@ -278,11 +278,13 @@ class Agent(nn.Module):
             self.rl_loss = -rl_Q.mean() # rl loss
 
             if self.bc_weight == 100:
-                print("soft Q!")
+                # print("soft Q!")
                 # 软Q
                 soft_action = self.bc_actor(batchState)
                 soft_Q = self.critic.onlyQ1(batchState, soft_action)
                 self.bc_weight = (soft_Q>rl_Q).float().mean().detach()
+                self.bc_weight = self.bc_weight.item()
+                # print(self.bc_weight)
 
             BCnextAction = self.actor(BCbatchState)
             self.bc_loss = F.mse_loss(BCnextAction, BCbatchAction) * 100000
@@ -302,7 +304,7 @@ class Agent(nn.Module):
         
         self.actorTrainable = not self.actorTrainable
         
-        return self.critic_loss.mean().cpu().detach().numpy(), self.actor_loss.cpu().detach().numpy(), self.bc_loss.cpu().detach().numpy(), self.rl_loss.cpu().detach().numpy(), self.bc_fire_loss.cpu().detach().numpy()
+        return self.critic_loss.mean().cpu().detach().numpy(), self.actor_loss.cpu().detach().numpy(), self.bc_loss.cpu().detach().numpy(), self.rl_loss.cpu().detach().numpy(), self.bc_fire_loss.cpu().detach().numpy(), self.bc_weight
         
     def saveCheckpoints(self,ajan,model_name):
         self.critic.saveCheckpoint(ajan,model_name)
@@ -317,5 +319,5 @@ class Agent(nn.Module):
         self.targetActor.loadCheckpoint(ajan,model_name)
 
     def load_bc_actor(self, ajan, model_name):
-        self.bc_actor.loadCheckpoint(ajan, model_name)
+        self.bc_actor.loadCheckpoint(ajan, model_name) # agent20 model/bc
         self.bc_actor.eval()  # 设置为评估模式

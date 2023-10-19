@@ -122,7 +122,7 @@ def plot_dif2(dif, lock, missile, fire, dir, name):
 
     # 着色 `missile` 区间为淡蓝色
     for j in range(len(missile)):
-        plt.axhspan(missile[j], missile[j]+1, facecolor='#ACD8E6', alpha=0.6)
+        plt.axvspan(missile[j], missile[j]+1, facecolor='#ACD8E6', alpha=0.6)
 
     # 标记 `fire` 对应的点为红色并增大
     for fire_step in fire:

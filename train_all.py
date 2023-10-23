@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 import csv
 
-from plot import draw_dif, draw_pos, plot_dif, plot_dif2
+from plot import draw_dif, draw_pos, plot_dif, plot_dif2, draw_pos2
 import argparse
 
 def save_parameters_to_txt(log_dir, **kwargs):
@@ -66,8 +66,8 @@ def main(config):
     highScore = -math.inf
     successRate = -math.inf
     batchSize = 128
-    maxStep = 3500
-    validatStep = 3500
+    maxStep = 6000
+    validatStep = 6000
     hiddenLayer1 = 256
     hiddenLayer2 = 512
     stateDim = 14 # gai
@@ -199,7 +199,8 @@ def main(config):
                             highScore = mean(valScores)
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos,fire1, plot_dir)
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)  
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
@@ -207,7 +208,8 @@ def main(config):
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, fire1,plot_dir)
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                 
@@ -263,6 +265,7 @@ def main(config):
                         bc_weight_now = 0.9
                     else:
                         bc_weight_now = 100
+                    bc_weight_now = 100
                     # 软Q       
 
                 for step in range(maxStep):
@@ -382,7 +385,8 @@ def main(config):
                             highScore = mean(valScores)
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, fire1, plot_dir) 
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
@@ -390,8 +394,9 @@ def main(config):
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, fire1, plot_dir)
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                 
                     arttir += 1
@@ -506,7 +511,7 @@ def main(config):
                                 if locked:
                                     lock.append(step)
                                 if beforeaction:
-                                    missile(step)
+                                    missile.append(step)
                                 
                                 if e == validationEpisodes - 1:
                                     dif.append(env.loc_diff)
@@ -558,7 +563,8 @@ def main(config):
                             highScore = mean(valScores)
                             agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir) 
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos,fire1, plot_dir) 
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
 
@@ -566,7 +572,8 @@ def main(config):
                             successRate = success / validationEpisodes
                             agent.saveCheckpoints("Agent{}_successRate{}".format(arttir, successRate), model_dir)
                             draw_dif(f'dif_{arttir}.png', dif, plot_dir)
-                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, plot_dir)
+                            draw_pos(f'pos_{arttir}.png', self_pos, oppo_pos, fire1,plot_dir)
+                            draw_pos2(f'pos2_{arttir}.png', self_pos, oppo_pos, plot_dir)
                             plot_dif(dif1, lock, fire1, plot_dir, f'my_dif_{arttir}.png')
                             plot_dif2(dif1, lock, missile, fire1, plot_dir, f'my_dif2_{arttir}.png')
                     

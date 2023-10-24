@@ -79,7 +79,7 @@ def draw_pos(file_name, self_pos, oppo_pos, fire, dir):
         ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=oppo_colors[i], label='oppo', zorder=1)
 
     for i in fire:
-        ax.plot(self_pos[i:i+1,0], self_pos[i:i+1,2], self_pos[i:i+1,1], color='yellow', zorder=2)
+        ax.plot(self_pos[i:i+2,0], self_pos[i:i+2,2], self_pos[i:i+2,1], color='yellow', zorder=2, linewidth=3)
 
     file_name = os.path.join(dir, file_name)
 

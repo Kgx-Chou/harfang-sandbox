@@ -50,7 +50,7 @@ def main(config):
     validationEpisodes = 25 # 100
     explorationEpisodes = 200 # 200
 
-    Test = False
+    Test = True
     if Test:
         render = True
     else:
@@ -77,7 +77,7 @@ def main(config):
     useLayerNorm = True
 
     bc_actor_dir = 'model\\BC\\bc_1'
-    bc_actor_name = 'Agent20_successRate0.32'
+    bc_actor_name = 'Agent20_successRate0.64'
 
     data_dir = './expert_data/expert_data_ai2.csv'
     data_folder_dir = './expert_data'
@@ -116,7 +116,7 @@ def main(config):
     
     arttir = 1
     # agent.loadCheckpoints(f"Agent0_", model_dir) # 使用未添加导弹的结果进行训练
-    agent.loadCheckpoints(f"Agent20_successRate0.64", model_dir) # 使用未添加导弹的结果进行训练
+    agent.loadCheckpoints(f"Agent11_score-1108.3008692988935", model_dir) # 使用未添加导弹的结果进行训练
     # 从500开始，550之后的（不包括550）使用此数据
 
     if not Test:
@@ -608,7 +608,7 @@ def main(config):
                     writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
                     writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
     else:
-        if True:
+        if False:
             env = HarfangEnv_test()
             success = 0
             validationEpisodes = 100
@@ -648,14 +648,14 @@ def main(config):
                 totalReward = 0
                 done = False
                 print('before state: ', state)
-                for step in range(1000):
+                for step in range(3000):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
                         n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action, step)
                         state = n_state
                         totalReward += reward
 
-                        if step == 1000 - 1:
+                        if step == 3000 - 1:
                             print('total fire is:', env.total_fire,'total success is', env.total_success)
                             break
 
@@ -708,6 +708,9 @@ if __name__=='__main__':
 # 700 0
 
 # python train_all.py --agent BC --port 11111 --upsample  --model_name bc_1 
-# Agent20_successRate0.64
+# Agent2_successRate0.64
 # 16%
 # 15 15
+# Agent20_successRate0.32
+# 12%
+# 58 58

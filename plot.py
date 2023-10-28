@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import os
 from pylab import mpl
+from matplotlib.colors import Normalize
 # 设置显示中文字体
 mpl.rcParams["font.sans-serif"] = ["SimHei"]
 # 设置正常显示符号
@@ -64,28 +65,56 @@ def draw_dif(file_name, dif, dir):
 #     file_name = os.path.join(dir, file_name)
 #     plt.savefig(file_name, bbox_inches='tight')
 
-def draw_pos(file_name, self_pos, oppo_pos, fire, dir):
+def draw_pos(file_name, self_pos, oppo_pos, fire, lock, dir):
     ax = plt.figure().add_subplot(projection='3d')
     self_pos = np.array(self_pos)
     oppo_pos = np.array(oppo_pos)
 
     num_points = len(self_pos)
 
-    self_colors = plt.cm.Blues(np.linspace(0.2, 1, num_points))
-    oppo_colors = plt.cm.Reds(np.linspace(0.2, 1, num_points))
+    self_colors = plt.cm.Blues(np.linspace(0.3, 1, num_points))
+    oppo_colors = plt.cm.Reds(np.linspace(0.3, 1, num_points))
 
     for i in range(num_points - 1):
-        ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=self_colors[i], label='self', zorder=1)
-        ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=oppo_colors[i], label='oppo', zorder=1)
+        ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 2], self_pos[i:i+2, 1], color=self_colors[i], label='self', zorder=1, linewidth=2)
+        ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 2], oppo_pos[i:i+2, 1], color=oppo_colors[i], label='oppo', zorder=1, linewidth=2)
 
     for i in fire:
-        ax.plot(self_pos[i:i+2,0], self_pos[i:i+2,2], self_pos[i:i+2,1], color='yellow', zorder=2, linewidth=3)
+        ax.plot(self_pos[i:i+2,0], self_pos[i:i+2,2], self_pos[i:i+2,1], color='red', zorder=3, linewidth=3)
+
+    for i in lock:
+        ax.plot(self_pos[i:i+2,0], self_pos[i:i+2,2], self_pos[i:i+2,1], color='#FFDFBF', zorder=2,linewidth=2, alpha=0.1)
+
+    # 先创建一个Normalize对象，指定颜色映射的范围
+    self_norm = Normalize(vmin=0, vmax=num_points)
+    oppo_norm = Normalize(vmin=0, vmax=num_points)
+
+    # 使用Normalize对象来创建ScalarMappable对象
+    self_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=self_norm)
+    oppo_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=oppo_norm)
+
+    # 创建两个轴来放置颜色条，分别设置位置和大小
+    self_cbar_ax = ax.inset_axes([1.15, 0.08, 0.03, 0.8])  # 调整位置和大小
+    oppo_cbar_ax = ax.inset_axes([1.18, 0.08, 0.03, 0.8])  # 调整位置和大小
+
+    # 添加颜色条到指定的轴上
+    self_cbar = plt.colorbar(self_sm, cax=self_cbar_ax, label='智能体步数')
+    oppo_cbar = plt.colorbar(oppo_sm, cax=oppo_cbar_ax, label='敌机步数')
+
+    # 设置颜色条的刻度
+    # self_cbar.set_ticks(np.arange(0, num_points, 500))
+    # 设置颜色条的标签位置
+    self_cbar.ax.yaxis.set_label_coords(-2, 0.5)
+    self_cbar.set_ticks([])
+    oppo_cbar.set_ticks(np.arange(0, num_points, 500))
 
     file_name = os.path.join(dir, file_name)
 
-    plt.title('追击图', fontsize=28)
+    plt.title('追击图', fontsize=14)
+
     plt.savefig(file_name, bbox_inches='tight', dpi=300)
     plt.close()
+
 
 def draw_pos2(file_name, self_pos, oppo_pos, dir):
     ax = plt.figure().add_subplot(projection='3d')

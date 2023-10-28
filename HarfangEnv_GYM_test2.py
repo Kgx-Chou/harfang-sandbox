@@ -6,7 +6,7 @@ import os
 import inspect
 
 
-class HarfangEnv():
+class HarfangEnv_test2():
     def __init__(self):
         self.done = False
         self.loc_diff = 0
@@ -29,6 +29,8 @@ class HarfangEnv():
         self.oppo_health = 0.2 # gai 敌机血量
         self.target_angle = None
         self.success = False # stepsuccess
+        self.total_success = 0
+        self.total_fire = 0
 
     def reset(self):  # reset simulation beginning of episode
         self.Ally_target_locked = False # 运用动作前是否锁敌
@@ -53,13 +55,17 @@ class HarfangEnv():
         return state_ally, self.reward, self.done, {}, self.success
     
     def step_test(self, action_ally, step):
-        df.set_health("ennemy_2", 1) # 恢复敌机健康值
-        if step % 200==0: # 每200 step 装一次弹
+        if step % 50==0: # 每200 step 装一次弹
             df.rearm_machine(self.Plane_ID_ally)
+
+        df.set_health("ennemy_2", 1) # 恢复敌机健康值
         self._apply_action(action_ally)  # apply neural networks output
+        
         state_ally = self._get_observation()  # in each step, get observation
+
         self._get_reward()  # get reward value
         self._get_termination()  # check termination conditions
+
         # df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
         return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward
     
@@ -92,11 +98,13 @@ class HarfangEnv():
             self.reward -= 4
 
         if self.now_missile_state == True: # gai 如果本次step导弹发射
+            self.total_fire += 1
             if self.missile1_state == True and self.Ally_target_locked == False: # 且导弹存在、不锁敌
                 self.reward -= 4
             elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
                 self.reward += 4
                 self.success = True
+                self.total_success += 1
             else:
                 self.reward -= 1
 

@@ -39,6 +39,11 @@ def main(config):
     rot_type = config.type
     if_up_sample = config.upsample
     bc_weight = config.bc_weight
+    Test = config.test
+    test_mode = config.test_mode
+    load_model = config.load_model
+    render = not (config.render)
+    print(render)
 
     df.connect("10.243.58.131", port) #TODO:Change IP and PORT values
 
@@ -50,11 +55,11 @@ def main(config):
     validationEpisodes = 25 # 100
     explorationEpisodes = 200 # 200
 
-    Test = True
-    if Test:
-        render = True
-    else:
-        render = True
+    # # Test = True
+    # if Test:
+    #     render = True
+    # else:
+    #     render = True
         
     df.set_renderless_mode(render)
     df.set_client_update_mode(True)
@@ -116,7 +121,8 @@ def main(config):
     
     arttir = 1
     # agent.loadCheckpoints(f"Agent0_", model_dir) # 使用未添加导弹的结果进行训练
-    agent.loadCheckpoints(f"Agent11_score-1108.3008692988935", model_dir) # 使用未添加导弹的结果进行训练
+    if load_model or Test:
+        agent.loadCheckpoints(f"Agent11_score-1108.3008692988935", model_dir) # 使用未添加导弹的结果进行训练
     # 从500开始，550之后的（不包括550）使用此数据
 
     if not Test:
@@ -608,7 +614,8 @@ def main(config):
                     writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
                     writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
     else:
-        if False:
+        if test_mode == 1:
+            print('ok')
             env = HarfangEnv_test()
             success = 0
             validationEpisodes = 100
@@ -639,7 +646,7 @@ def main(config):
                             print(env.loc_diff)
                         break
             print('Success Ratio:', success / validationEpisodes)
-        else:
+        elif test_mode == 2:
             env = HarfangEnv_test2()
             success = 0
             validationEpisodes = 10
@@ -673,6 +680,10 @@ if __name__=='__main__':
     parser.add_argument('--upsample', action='store_true')
     parser.add_argument('--bc_weight', type=float, default=1)
     parser.add_argument('--model_name', type=str, default=None)
+    parser.add_argument('--test', action='store_true')
+    parser.add_argument('--test_mode', type=int, default=1) # 1为随机初始化模式，2为无限导弹模式
+    parser.add_argument('--load_model', action='store_true')
+    parser.add_argument('--render', action='store_true')
     main(parser.parse_args())
 
 # 线性rot
@@ -697,7 +708,7 @@ if __name__=='__main__':
 # 39%
 # 315 33
 
-# python train_all.py --agent ROT --port 11111 --type linear --upsample --bc_weight 1 --model_name lrot_1
+# python train_all.py --agent ROT --port 11111 --type linear --upsample --bc_weight 1 --model_name lrot_1 
 # Agent11_score-1108.3008692988935
 # 48%
 # 30 30
